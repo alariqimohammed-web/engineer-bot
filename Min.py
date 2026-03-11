@@ -3,28 +3,23 @@ import google.generativeai as genai
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 
-# 1. إعداد مفتاح Gemini API
-GEMINI_KEY = "AIzaSyAvIMLXiZD08PaRlBWfkwhI3kVi4GGVYuQ"
-genai.configure(api_key=GEMINI_KEY)
+# 1. إعداد Gemini
+genai.configure(api_key="AIzaSyAvIMLXiZD08PaRlBWfkwhI3kVi4GGVYuQ")
 model = genai.GenerativeModel('gemini-pro')
 
-# 2. تعريف هوية البوت
-SYSTEM_PROMPT = """
-أنت 'Ones AI' (وانس)، ذكاء اصطناعي عالمي متطور. مطورك هو المهندس محمد عدنان العريقي، طالب بجامعة الحكمة - كلية الهندسة - فرع الحوبان. رابط فيسبوك المطور: https://www.facebook.com/share/17Qrgq6qoR/
-"""
+# 2. الهوية (تم مسح الاقتباسات الثلاثية وتعديلها لتعمل بوضوح)
+SYSTEM_PROMPT = "أنت Ones AI (وانس)، ذكاء اصطناعي مطورك المهندس محمد عدنان العريقي من جامعة الحكمة فرع الحوبان."
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_name = update.effective_user.first_name
-    await update.message.reply_text(f"مرحباً {user_name}! أنا Ones AI، المساعد الذكي للمهندس محمد عدنان العريقي. كيف أساعدك اليوم؟")
+    await update.message.reply_text("مرحباً! أنا Ones AI، المساعد الذكي للمهندس محمد عدنان العريقي. كيف يمكنني مساعدتك اليوم؟")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_input = update.message.text
-    full_prompt = f"{SYSTEM_PROMPT}\nالمستخدم يسأل: {user_input}"
     try:
-        response = model.generate_content(full_prompt)
-        await update.message.reply_text(response.text)
-    except:
-        await update.message.reply_text("حدث خطأ بسيط، حاول مرة أخرى!")
+        user_input = update.message.text
+        res = model.generate_content(SYSTEM_PROMPT + "\nالمستخدم: " + user_input)
+        await update.message.reply_text(res.text)
+    except Exception as e:
+        await update.message.reply_text("أنا مستيقظ، لكن حدث خطأ بسيط في الاتصال. جرب مرة أخرى!")
 
 if __name__ == '__main__':
     TOKEN = os.environ.get("TELEGRAM_TOKEN")
