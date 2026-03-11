@@ -3,19 +3,20 @@ import google.generativeai as genai
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 
-# جلب المفاتيح من الإعدادات (Environment)
+# استلام المفاتيح من Render (طريقة آمنة)
 genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 model = genai.GenerativeModel('gemini-pro')
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("أهلاً بك! أنا Ones AI، كيف أخدمك؟")
+    await update.message.reply_text("أهلاً بك! أنا Ones AI، كيف أخدمك يا مهندس؟")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         res = model.generate_content(update.message.text)
         await update.message.reply_text(res.text)
-    except:
-        await update.message.reply_text("أنا هنا، جرب إرسال رسالتك مرة أخرى.")
+    except Exception as e:
+        print(f"Error: {e}")
+        await update.message.reply_text("أنا متصل، لكن هناك ضغط بسيط. جرب مرة أخرى!")
 
 if __name__ == '__main__':
     TOKEN = os.environ.get("TELEGRAM_TOKEN")
