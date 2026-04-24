@@ -1,67 +1,35 @@
 import os
-import threading
-from http.server import BaseHTTPRequestHandler, HTTPServer
-
+import google.generativeai as genai
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 
-from openai import OpenAI
+# سحب المفاتيح من إعدادات Render (Environment Variables)
+TOKEN = os.environ.get("TELEGRAM_TOKEN")
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 
-# ---------- Health Check Server ----------
-class HealthCheckHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Bot is running")
+# إعداد الذكاء الاصطناعي
+genai.configure(api_key=GEMINI_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-def run_health_check():
-    port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
-    server.serve_forever()
-
-# ---------- OpenAI ----------
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
-# ---------- Start Command ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "اهلا محمد 👋\nانا بوت ذكاء اصطناعي. اسألني اي شيء."
-    )
+    await update.message.reply_text("أهلاً بك! أنا ونس، مساعدك الذكي الذي طوره المهندس محمد العريقي. كيف أساعدك اليوم؟")
 
-# ---------- Handle Messages ----------
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    user_text = update.message.text
-
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "انت مساعد ذكي وصديق للمستخدم."},
-                {"role": "user", "content": user_text}
-            ]
-        )
-
-        reply = response.choices[0].message.content
-
-        await update.message.reply_text(reply)
-
+        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+        
+        # إرسال النص لـ Gemini مع هويتك
+        prompt = f"أنت اسمك ونس، مساعد ذكي وودود طورك المهندس محمدعدنان العريقي. رد على: {update.message.text}"
+        response = model.generate_content(prompt)
+        
+        await update.message.reply_text(response.text)
     except Exception as e:
-        print(e)
-        await update.message.reply_text("حصل خطأ. حاول مرة ثانية.")
+        print(f"Error detail: {e}")
+        await update.message.reply_text("أنا أسمعك، لكن يبدو أن هناك ضغط بسيط. أعد إرسال الرسالة الآن.")
 
-# ---------- Main ----------
-if __name__ == "__main__":
-
-    threading.Thread(target=run_health_check, daemon=True).start()
-
-    TOKEN = os.environ.get("TELEGRAM_TOKEN")
-
+if __name__ == '__main__':
     app = ApplicationBuilder().token(TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler('start', start))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-
-    print("Bot started...")
-
+    print("Bot is running on Render...")
     app.run_polling()
